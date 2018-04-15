@@ -23,7 +23,7 @@ class SharedAdam(torch.optim.Adam):
                 state['exp_avg'].share_memory_()
                 state['exp_avg_sq'].share_memory_()
 
-def exp_lr_scheduler(optimizer, epoch, lr_decay=0.8, lr_decay_epoch=200):
+def exp_lr_scheduler(optimizer, epoch, lr_decay=0.9, lr_decay_epoch=200):
     """Decay learning rate by a factor of lr_decay every lr_decay_epoch epochs"""
     if epoch % lr_decay_epoch:
         return optimizer

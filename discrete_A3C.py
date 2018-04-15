@@ -16,9 +16,9 @@ import gym
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
-UPDATE_GLOBAL_ITER = 20
+UPDATE_GLOBAL_ITER = 10
 GAMMA = 0.9
-MAX_EP = 3000
+MAX_EP = 6000
 
 env = gym.make('CartPole-v0')
 N_S = env.observation_space.shape[0]
@@ -30,17 +30,22 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.s_dim = s_dim
         self.a_dim = a_dim
-        self.b1 = nn.Linear(s_dim, 64)
-        self.b2 = nn.Linear(64, 32)
-        self.pi = nn.Linear(32, a_dim)
-        self.v = nn.Linear(32, 1)
+        self.b1 = nn.Linear(s_dim, 32)
+        # self.bn1 = nn.BatchNorm1d(32, momentum=0.5)
+        self.b2 = nn.Linear(32, 24)
+        # self.bn2 = nn.BatchNorm1d(24, momentum=0.5)
+        # self.b3 = nn.Linear(24,16)
+        # self.bn3 = nn.BatchNorm1d(16, momentum=0.5)
+        self.pi = nn.Linear(24, a_dim)
+        self.v = nn.Linear(24, 1)
         set_init([self.b1, self.b2, self.pi, self.v])
         self.distribution = torch.distributions.Categorical
 
     def forward(self, x):
 
-        b1_o = F.sigmoid(self.b1(x))
-        b2_o = F.sigmoid(self.b2(b1_o))
+        b1_o = F.leaky_relu(self.b1(x))
+        b2_o = F.leaky_relu(self.b2(b1_o))
+        # b3_o = F.leaky_relu(self.b3(b2_o))
         logits = self.pi(b2_o)
         values = self.v(b2_o)
 
@@ -63,8 +68,8 @@ class Net(nn.Module):
         m = self.distribution(probs)
         exp_v = m.log_prob(a) * td.detach()
         a_loss = -exp_v
-        # total_loss = (c_loss + a_loss).mean()
-        return a_loss.mean(), c_loss.mean()
+        total_loss = (c_loss + a_loss).mean()
+        return a_loss.mean(), c_loss.mean(), total_loss
 
 
 class Worker(mp.Process):

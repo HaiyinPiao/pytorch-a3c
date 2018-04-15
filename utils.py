@@ -17,8 +17,8 @@ def v_wrap(np_array, dtype=np.float32):
 
 def set_init(layers):
     for layer in layers:
-        nn.init.normal(layer.weight, mean=0., std=1.0)
-        nn.init.constant(layer.bias, 0.1)
+        nn.init.normal(layer.weight, mean=0., std=.3)
+        nn.init.constant(layer.bias, 0.3)
 
 
 def push_and_pull(opt, lnet, gnet, done, s_, bs, ba, br, gamma, ep):
@@ -33,16 +33,18 @@ def push_and_pull(opt, lnet, gnet, done, s_, bs, ba, br, gamma, ep):
         buffer_v_target.append(v_s_)
     buffer_v_target.reverse()
 
-    a_loss, c_loss = lnet.loss_func(
+    a_loss, c_loss, loss = lnet.loss_func(
+        # loss = lnet.loss_func(
         v_wrap(np.vstack(bs)),
         v_wrap(np.array(ba), dtype=np.int64) if ba[0].dtype == np.int64 else v_wrap(np.vstack(ba)),
         v_wrap(np.array(buffer_v_target)[:, None]))
 
     # calculate local gradients and push local parameters to global
     opt.zero_grad()
-    c_loss.backward(retain_graph=True)
-    a_loss.backward()
-    nn.utils.clip_grad_norm(lnet.parameters(), 1.)
+    loss.backward()
+    # c_loss.backward(retain_graph=True)
+    # a_loss.backward()
+    nn.utils.clip_grad_norm(lnet.parameters(), 10.0)
     for lp, gp in zip(lnet.parameters(), gnet.parameters()):
         gp._grad = lp.grad
     # if not ep%50:
